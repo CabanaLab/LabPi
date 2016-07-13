@@ -1,4 +1,4 @@
-# Script to run on a Raspberry Pi that will send a HTTPrequest to the main inventory server to mark a certain container_id as empty and hopefully, if it's not too complicated to program, output a success message to a GPIO LCD display. Questions? Comments? email michael.plews@gmail.com
+# Used in conjunction with https://github.com/m3wolf/professor_oak (Professor Oak Lab Management System). Script to run on a Raspberry Pi that will send a HTTPrequest to the main inventory server to mark a certain container_id as empty and hopefully, if it's not too complicated to program, output a success message to a GPIO LCD display. Questions? Comments? email michael.plews@gmail.com
 
 import datetime, requests, json, LOCALSETTINGS as localsettings
 
