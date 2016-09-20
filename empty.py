@@ -1,11 +1,12 @@
 # Used in conjunction with https://github.com/m3wolf/professor_oak (Professor Oak Lab Management System). Script to run on a Raspberry Pi that will send a HTTPrequest to the main inventory server to mark a certain container_id as empty and hopefully, if it's not too complicated to program, output a success message to a GPIO LCD display. Questions? Comments? email michael.plews@gmail.com
 
-import datetime, requests, json, LOCALSETTINGS as localsettings
+import re, datetime, requests, json, LOCALSETTINGS as localsettings
 
 #variables
-debug = 'OFF'
+debug = localsettings.DEBUG
 barcode_digit_length = 6
 
+ulon_url = localsettings.ulon_url
 base_url = localsettings.base_url
 username = localsettings.username
 password = localsettings.password
@@ -17,7 +18,22 @@ def login():
 def do_command(input):
 	if input == 'EXIT':
 		exit() 
-	
+
+def validate(input):
+	regex = re.compile(r'(UL)?\d{1,' + re.escape(str(barcode_digit_length)) + '}$', flags=re.IGNORECASE)
+	if regex.match(input):
+		return True
+	else:
+		return False
+
+def send_notification(id_number, note_type):
+	#stubbed for development
+	auth = login()	
+	if note_type == 'ULON':
+		url = ulon_url + str(id_number)
+		r = requests.get(url, auth=auth)
+	return r.status_code
+
 def check_if_empty(id_number):
 	#stubbed for development
 	return None
@@ -60,12 +76,15 @@ def write_to_log(message_string, status_code):
 while True:
 	barcode = str(input('input:'))
 	do_command(barcode)
-	try:
-		int_barcode = int(barcode) #checks the input is an integer to avoid foul play
-	except ValueError:
-		print ('Value not an integer. No information was passed to the server.')
-		write_to_log('error: Value not an integer. No information was passed to the server.','')
+	if validate(barcode):
+		if barcode[:2] == 'UL':
+			status_return = send_notification(barcode[2:], note_type='ULON')
+			barcode_string = str(barcode)
+		else:
+			status_return = mark_as_empty(barcode)
+			barcode_string = str(barcode).zfill(barcode_digit_length)
+		write_to_log(barcode_string, status_return)
+		print ('ID#' + barcode_string + '\t' + status_return)
 	else:
-		status_return = mark_as_empty(barcode)
-		write_to_log(str(barcode).zfill(barcode_digit_length), status_return)
-		print ('ID#' + str(barcode).zfill(barcode_digit_length) + '\t' + status_return)
+		print ('Input does not match validation. No information was passed to the server.')
+		write_to_log('error: Input does not match validation. No information was passed to the server', '')
