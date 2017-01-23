@@ -1,4 +1,6 @@
 # LabPi
+[![GitHub tag](https://img.shields.io/github/tag/CabanaLab/LabPi.svg?style=flat-square)](https://github.com/CabanaLab/LabPi/releases)
+
 Scripts running on the Raspberry Pi in 4163SES.
 
 ## Installation
