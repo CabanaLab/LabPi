@@ -1,8 +1,6 @@
 LOCALSETTINGS.py
-<<<<<<< Updated upstream
 __pycache__/
 emptied_chemicals.log
-=======
 *~
 __pycache__
->>>>>>> Stashed changes
+__init__.py
