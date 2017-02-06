@@ -1,3 +1,6 @@
 LOCALSETTINGS.py
 __pycache__/
 emptied_chemicals.log
+*~
+__pycache__
+__init__.py
