@@ -75,6 +75,7 @@ def mark_as_empty(id_number):
     r = requests.patch(url, json=payload, auth=auth)
     return r.status_code  
 
+
 if __name__ == "__main__":
     lcd.lcd_init()
     lcd.lcd_string("Welcome", lcd.LCD_LINE_1, "c")
@@ -101,12 +102,8 @@ if __name__ == "__main__":
                     log.info("ULON# %s %s", str(barcode).zfill(barcode_digit_length), status_return)
                     if status_return == "200":
                         lcd.lcd_string("Email Sent!", lcd.LCD_LINE_1)
-                        lcd.GPIO.cleanup()
-                        lcd.time.sleep(2)
                     else:
                         lcd.lcd_string("Error!", lcd.LCD_LINE_1)
-                        lcd.GPIO.cleanup()
-                        lcd.time.sleep(2)
                 else:
                     lcd.lcd_string("Sending...", lcd.LCD_LINE_1)
                     status_return = mark_as_empty(barcode)
@@ -114,17 +111,15 @@ if __name__ == "__main__":
                     log.info("ID# %s %s", str(barcode).zfill(barcode_digit_length), status_return)
                     if status_return == 200:
                         lcd.lcd_string("Marked as Empty!", lcd.LCD_LINE_1)
-                        lcd.GPIO.cleanup()
-                        lcd.time.sleep(2)
+                    elif status_return == 404:
+                        lcd.lcd_string("Not Found!", lcd.LCD_LINE_1)
                     else:
                         lcd.lcd_string("Error!", lcd.LCD_LINE_1)
-                        lcd.GPIO.cleanup()
-                        lcd.time.sleep(2)                
             else:
                 log.warning("Invalid input: %s", barcode)
                 lcd.lcd_string("Invalid", lcd.LCD_LINE_1)
-                lcd.GPIO.cleanup()
-                lcd.time.sleep(2)
+            lcd.GPIO.cleanup()
+            lcd.time.sleep(2)
         except (KeyboardInterrupt, SystemExit):
             lcd.lcd_string("Goodbye!",lcd.LCD_LINE_1, "c")
             lcd.time.sleep(1)
