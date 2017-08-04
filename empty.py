@@ -9,7 +9,7 @@ import re, datetime, requests, json, LOCALSETTINGS as localsettings, lcd_16x2 as
 import logging
 
 # Setup logging
-logging.basicConfig(filename='~/labpi.log', level=logging.INFO, mode="r+", format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.basicConfig(filename='labpi.log', level=logging.INFO, mode="r+", format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 log = logging.getLogger('emptypi')
 logging.getLogger("requests").setLevel(logging.WARNING)
 
