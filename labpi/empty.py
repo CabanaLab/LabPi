@@ -16,33 +16,48 @@ import re
 import datetime
 import requests
 import json
+import configparser
+import os
 
 
 # Variables
 barcode_digit_length = 6
 
-try:
-    import LOCALSETTINGS as localsettings
-except ImportError:
-    ulon_url = ''
-    base_url = ''
-    username = ''
-    password = ''
-else:
-    ulon_url = localsettings.ulon_url
-    base_url = localsettings.base_url
-    username = localsettings.username
-    password = localsettings.password
+
+def load_config(configfile='~/labpi.conf'):
+    """Create a configuration from a .conf file.
+    
+    Returns
+    =======
+    config : configparser.ConfigParser
+      The configuration loaded from disk.
+    
+    """
+    # Create a default configuration
+    config = configparser.ConfigParser()
+    config.read_dict({
+        'server': {
+            'username': '',
+            'password': '',
+            'base_url': 'http://example.com/container/{id}'
+        }
+    })
+    # Load the configuration from disk
+    config.read(os.path.expanduser(configfile))
+    return config
 
 
 def login():
+    config = load_config()
+    username = config['server']['username']
+    password = config['server']['password']
     auth = requests.auth.HTTPBasicAuth(username, password)
     log.debug("Logged in with user %s", username)
     return auth
 
 
 def validate(input):
-    """Check that the input specified is either a container barcode or ULON barcode.
+    """Check that the input specified is a container barcode.
     
     Returns
     -------
@@ -58,16 +73,6 @@ def validate(input):
     return is_valid
 
 
-def send_notification(id_number, note_type):
-    """Ask the server to notify the user that the ULON has been
-    removed."""
-    auth = login()  
-    if note_type == 'ULON':
-        url = ulon_url + str(id_number)
-        r = requests.get(url, auth=auth)
-    return r.status_code
-
-
 def check_if_empty(id_number):
     # Stubbed for development
     raise NotImplementedError()
@@ -75,7 +80,8 @@ def check_if_empty(id_number):
 
 def mark_as_empty(id_number):
     """Hit the server and tell it the this container is now empty."""
-    url = base_url + str(id_number)
+    base_url = load_config()['server']['base_url']
+    url = base_url.format(id=id_number)
     log.debug("Url is '%s'", url)
     payload = {
         'is_empty': True,
@@ -109,26 +115,16 @@ def input_loop(lcd):
             if validate(barcode):
                 lcd.lcd_string("Recieved:", lcd.LCD_LINE_1)
                 lcd.lcd_string(barcode, lcd.LCD_LINE_2)
-                if barcode[:2] == 'UL':
-                    lcd.lcd_string("Sending...", lcd.LCD_LINE_1)
-                    status_return = send_notification(barcode[2:], note_type='ULON')
-                    barcode_string = str(barcode)
-                    log.info("ULON# %s %s", str(barcode).zfill(barcode_digit_length), status_return)
-                    if status_return == "200":
-                        lcd.lcd_string("Email Sent!", lcd.LCD_LINE_1)
-                    else:
-                        lcd.lcd_string("Error!", lcd.LCD_LINE_1)
+                lcd.lcd_string("Sending...", lcd.LCD_LINE_1)
+                status_return = mark_as_empty(barcode)
+                barcode_string = str(barcode).zfill(barcode_digit_length)
+                log.info("ID# %s %s", str(barcode).zfill(barcode_digit_length), status_return)
+                if status_return == 200:
+                    lcd.lcd_string("Marked as Empty!", lcd.LCD_LINE_1)
+                elif status_return == 404:
+                    lcd.lcd_string("Not Found!", lcd.LCD_LINE_1)
                 else:
-                    lcd.lcd_string("Sending...", lcd.LCD_LINE_1)
-                    status_return = mark_as_empty(barcode)
-                    barcode_string = str(barcode).zfill(barcode_digit_length)
-                    log.info("ID# %s %s", str(barcode).zfill(barcode_digit_length), status_return)
-                    if status_return == 200:
-                        lcd.lcd_string("Marked as Empty!", lcd.LCD_LINE_1)
-                    elif status_return == 404:
-                        lcd.lcd_string("Not Found!", lcd.LCD_LINE_1)
-                    else:
-                        lcd.lcd_string("Error!", lcd.LCD_LINE_1)
+                    lcd.lcd_string("Error!", lcd.LCD_LINE_1)
             else:
                 log.warning("Invalid input: %s", barcode)
                 lcd.lcd_string("Invalid", lcd.LCD_LINE_1)

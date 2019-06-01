@@ -19,15 +19,17 @@ Prints output to a [16x2 character LCD screen](https://www.adafruit.com/products
 
 ## Configuration
 
-Create a file in the LabPi/labpi directory title ``LOCALSETTINGS.py``
-with installation specific variables.
+The package will look for configuration in ``~/labpi.conf``. Example
+configuration is:
 
-- **ulon_url** - Base REST url (with trailing slash) for accessing
-    ULONS. It will have the ULON ID appended.
-- **base_url** - Base REST url (with trailing slash) for accessing
-    containers. It will have the container ID appended.
-- **username** - Username for logging into the professor_oak server.
-- **password** - Password for logging into the professor_oak server.
+    [server]
+    # Url for the professor oak server
+    # {id} will be replaced with the container ID.
+    base_url = http://example.com/container/{id}
+    # Username for the professor oak server
+    username =
+    # Password for the professor oak server
+    password = 
 
 ## Usage
 
