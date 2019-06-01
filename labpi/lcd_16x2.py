@@ -49,9 +49,9 @@
 # 15: LCD Backlight +5V**
 # 16: LCD Backlight GND
 
-#import
-import RPi.GPIO as GPIO
 import time
+
+import RPi.GPIO as GPIO
 
 # Define GPIO to LCD mapping
 LCD_RS = 25

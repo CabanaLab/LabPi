@@ -4,38 +4,52 @@ that will send a HTTPrequest to the main inventory server to mark a
 certain container_id as empty and output a success/failure message to a GPIO LCD
 display. Questions? Comments? email michael.plews@gmail.com"""
 
-import re, datetime, requests, json, LOCALSETTINGS as localsettings, lcd_16x2 as lcd
-
-import logging
-
 # Setup logging
-logging.basicConfig(filename='labpi.log', level=logging.INFO, mode="r+", format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+import logging
+logging.basicConfig(filename='labpi.log', level=logging.INFO,
+                    format='%(asctime)s %(message)s',
+                    datefmt='%m/%d/%Y %I:%M:%S %p')
 log = logging.getLogger('emptypi')
 logging.getLogger("requests").setLevel(logging.WARNING)
+
+import re
+import datetime
+import requests
+import json
+
 
 # Variables
 barcode_digit_length = 6
 
-ulon_url = localsettings.ulon_url
-base_url = localsettings.base_url
-username = localsettings.username
-password = localsettings.password
+try:
+    import LOCALSETTINGS as localsettings
+except ImportError:
+    ulon_url = ''
+    base_url = ''
+    username = ''
+    password = ''
+else:
+    ulon_url = localsettings.ulon_url
+    base_url = localsettings.base_url
+    username = localsettings.username
+    password = localsettings.password
 
 
 def login():
     auth = requests.auth.HTTPBasicAuth(username, password)
     log.debug("Logged in with user %s", username)
     return auth
- 
+
 
 def validate(input):
     """Check that the input specified is either a container barcode or ULON barcode.
-
+    
     Returns
     -------
-    - is_valid : bool
+    is_valid : bool
       True if the input is a valid barcode ID, False otherwise.
-      """
+    
+    """
     regex = re.compile(r'(UL)?\d{1,' + re.escape(str(barcode_digit_length)) + '}$', flags=re.IGNORECASE)
     if regex.match(input):
         is_valid = True
@@ -68,17 +82,16 @@ def mark_as_empty(id_number):
         }
     log.debug('Payload is %s', str(payload))
     auth = login()
-
+    
     r = requests.patch(url, json=payload, auth=auth)
     log.debug("Received response status code: %s", r.status_code)
     log.debug("Received response text: %s", r.text)
-
+    
     r = requests.patch(url, json=payload, auth=auth)
-    return r.status_code  
+    return r.status_code
 
 
-if __name__ == "__main__":
-    lcd.lcd_init()
+def input_loop(lcd):
     lcd.lcd_string("Welcome", lcd.LCD_LINE_1, "c")
     lcd.lcd_string("to LabPi", lcd.LCD_LINE_2, "c")
     lcd.GPIO.cleanup()
@@ -127,3 +140,11 @@ if __name__ == "__main__":
             lcd.GPIO.cleanup()
             lcd.lcd_init()
             exit()
+
+
+def main():
+    from labpi import lcd_16x2 as lcd
+    lcd.lcd_init()
+
+if __name__ == "__main__":
+    main()
