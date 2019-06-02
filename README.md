@@ -29,7 +29,12 @@ configuration is:
     # Username for the professor oak server
     username =
     # Password for the professor oak server
-    password = 
+    password =
+
+    [pi]
+    # Which LCD is installed (i2c_rgb, gpio)
+    lcd_panel = i2c_rgb
+
 
 ## Usage
 

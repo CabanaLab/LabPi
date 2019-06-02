@@ -19,6 +19,8 @@ import json
 import configparser
 import os
 
+import labpi.lcd
+
 
 # Variables
 barcode_digit_length = 6
@@ -40,11 +42,24 @@ def load_config(configfile='~/labpi.conf'):
             'username': '',
             'password': '',
             'base_url': 'http://example.com/container/{id}'
+        },
+        'pi': {
+            'lcd_panel': 'dummy',
         }
     })
     # Load the configuration from disk
     config.read(os.path.expanduser(configfile))
     return config
+
+
+def lcd_factory(panel_name):
+    panels = {
+        'i2c_rgb': labpi.lcd.I2CRGBLCD,
+        'gpio': labpi.lcd.GPIOLCD,
+        'dummy': labpi.lcd.BaseLCD,
+    }
+    LCD = panels[panel_name]
+    return LCD()
 
 
 def login():
@@ -97,50 +112,52 @@ def mark_as_empty(id_number):
     return r.status_code
 
 
-def input_loop(lcd):
-    lcd.lcd_string("Welcome", lcd.LCD_LINE_1, "c")
-    lcd.lcd_string("to LabPi", lcd.LCD_LINE_2, "c")
+def process_input(lcd, server):
     lcd.GPIO.cleanup()
-    lcd.time.sleep(3)
-    while True:
-        try:
-            lcd.GPIO.cleanup()
-            lcd.lcd_init()
-            lcd.lcd_string("Ready:", lcd.LCD_LINE_1)
-            barcode = str(input('input:'))
-            log.debug("Input received: %s", barcode)
-            if barcode == 'EXIT':
-                log.info("Received 'EXIT' signal. Exiting.")
-                exit()
-            if validate(barcode):
-                lcd.lcd_string("Recieved:", lcd.LCD_LINE_1)
-                lcd.lcd_string(barcode, lcd.LCD_LINE_2)
-                lcd.lcd_string("Sending...", lcd.LCD_LINE_1)
-                status_return = mark_as_empty(barcode)
-                barcode_string = str(barcode).zfill(barcode_digit_length)
-                log.info("ID# %s %s", str(barcode).zfill(barcode_digit_length), status_return)
-                if status_return == 200:
-                    lcd.lcd_string("Marked as Empty!", lcd.LCD_LINE_1)
-                elif status_return == 404:
-                    lcd.lcd_string("Not Found!", lcd.LCD_LINE_1)
-                else:
-                    lcd.lcd_string("Error!", lcd.LCD_LINE_1)
-            else:
-                log.warning("Invalid input: %s", barcode)
-                lcd.lcd_string("Invalid", lcd.LCD_LINE_1)
-            lcd.GPIO.cleanup()
-            lcd.time.sleep(2)
-        except (KeyboardInterrupt, SystemExit):
-            lcd.lcd_string("Goodbye!",lcd.LCD_LINE_1, "c")
-            lcd.time.sleep(1)
-            lcd.GPIO.cleanup()
-            lcd.lcd_init()
-            exit()
+    lcd.lcd_init()
+    lcd.lcd_string("Ready:", lcd.LCD_LINE_1)
+    barcode = str(input('input:'))
+    log.debug("Input received: %s", barcode)
+    if barcode == 'EXIT':
+        log.info("Received 'EXIT' signal. Exiting.")
+        exit()
+    if validate(barcode):
+        barcode = barcode.lstrip('0')
+        # Send the request to the server
+        msg = "Container {}:\nSending...".format(barcode)
+        lcd.print_message(msg, lcd.C_WARNING)
+        status_return = server.mark_as_empty(barcode)
+        barcode_string = str(barcode).zfill(barcode_digit_length)
+        log.info("ID# %s %s", str(barcode).zfill(barcode_digit_length), status_return)
+        # Handle the return status code
+        if status_return == 200:
+            msg = "Container {}:\nMarked as Empty!".format(barcode)
+            lcd.print_message(msg, lcd.C_SUCCESS)
+        elif status_return == 404:
+            log.error("Container %s 404.", barcode)
+            msg = "Container {}:\nNot Found!".format(barcode)
+            lcd.print_message(msg, lcd.C_ERROR)
+        else:
+            msg = "Container {}:\nError! ({})".format(barcode, status_return)
+            lcd.print_message(msg, lcd.C_ERROR)
+    else:
+        # Invalid barcode, so let the user know
+        log.warning("Invalid input: %s", barcode)
+        lcd.lcd_string("Invalid", lcd.LCD_LINE_1)
+    lcd.GPIO.cleanup()
+    lcd.time.sleep(2)
 
 
 def main():
-    from labpi import lcd_16x2 as lcd
-    lcd.lcd_init()
+    lcd = lcd_factory(load_config()['pi']['lcd_panel'])
+    try:
+        while True:
+            process_input(lcd=lcd)
+    except (KeyboardInterrupt, SystemExit):
+        lcd.print_message("Goodbye!", lcd.C_INFO)
+        lcd.exit()
+        exit()
+
 
 if __name__ == "__main__":
     main()
